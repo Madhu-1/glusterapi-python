@@ -1,41 +1,44 @@
+import httplib
 import json
 
-from common import BaseAPI
-from exceptions import GlusterApiInvalidInputs
+from glusterapi.common import BaseAPI, validate_uuid
+from glusterapi.exceptions import GlusterApiInvalidInputs
 
 
 class DeviceApis(BaseAPI):
-    def device_add(self, host, device=""):
+    def device_add(self, peerid="", device=""):
         """
-        Gluster Peer add
+        Gluster device add.
 
-        :param host: (string) Host UUID
-        :param metadata: (dict) host metadata
-        :param zone: (string) zone id
-        :raises: GlusterApiError on failure
+        :param peerid: (string) Peer UUID
+        :param device: (string) device name
+        :raises: GlusterApiError or GlusterApiInvalidInputs on failure
         """
+        if validate_uuid(peerid) is False:
+            raise GlusterApiInvalidInputs("Invalid host id specified")
         device = device.strip()
-        if len(device) == 0:
+        if not device:
             raise GlusterApiInvalidInputs("Invalid device specified")
         req = {
             "device": device
         }
-        return self._handle_request(self._post, 201, "/v1/peers/%s" % host, json.dumps(req))
+        return self._handle_request(self._post, httplib.CREATED,
+                                    "/v1/devices/%s" % peerid, json.dumps(req))
 
-    def peer_remove(self, peerid):
+    def device_status(self, peerid):
         """
-        Gluster Peer remove
+        Gluster get devices in peer.
 
         :param peerid: (string) peerid returned from peer_add
         :raises: GlusterApiError on failure
         """
-        url = "/v1/peers/" + peerid
-        return self._handle_request(self._delete, 204, url, None)
+        url = "/v1/devices/" + peerid
+        return self._handle_request(self._get, httplib.OK, url)
 
-    def peer_status(self):
+    def devices(self):
         """
-        Gluster Peer Status
+        Gluster list all devices.
 
         :raises: GlusterApiError on failure
         """
-        return self._handle_request(self._get, 200, "/v1/peers")
+        return self._handle_request(self._get, httplib.OK, "/devices")
